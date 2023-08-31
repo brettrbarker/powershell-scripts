@@ -1,6 +1,10 @@
-# Write a script that takes two CSV files, Matches the values from the first column that is called "name" and determines if lines have been added or removed.
-# The script will write a new CSV file that will have the lines from the first CSV with a new column called 'Status Change' that says 'Deleted' if it is not in the second file.
-# If the line is in the second file and not the first, the 'Status Changed' column will have "Created" in it.
+################################################
+# CSV Comparison Script
+# Author: Brett Barker
+# Date: 2023-08-30
+# Description: This script compares two CSV files and outputs the differences to a new CSV file.
+# Usage: ./Compare-CSV.ps1
+################################################
 
 # Define the paths to the input CSV files
 $csv1Path = "./test-data/file1.csv"
