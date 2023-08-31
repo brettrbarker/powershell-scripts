@@ -3,8 +3,8 @@
 # If the line is in the second file and not the first, the 'Status Changed' column will have "Created" in it.
 
 # Define the paths to the input CSV files
-$csv1Path = "C:\path\to\file1.csv"
-$csv2Path = "C:\path\to\file2.csv"
+$csv1Path = "./test-data/file1.csv"
+$csv2Path = "./test-data/file2.csv"
 
 # Import the CSV files as arrays of objects
 $csv1 = Import-Csv -Path $csv1Path
@@ -14,7 +14,7 @@ $csv2 = Import-Csv -Path $csv2Path
 $columnName = "name"
 
 # Compare the two CSV files based on the matching column
-$comparison = Compare-Object -ReferenceObject $csv1 -DifferenceObject $csv2 -Property $columnName -PassThru
+$comparison = Compare-Object -ReferenceObject $csv1 -DifferenceObject $csv2 -Property $columnName -PassThru -IncludeEqual
 
 # Add a new column to the output CSV file indicating the status change
 $output = $comparison | Select-Object *,@{Name="Status Change";Expression={
@@ -24,5 +24,5 @@ $output = $comparison | Select-Object *,@{Name="Status Change";Expression={
 }}
 
 # Export the output CSV file
-$outputPath = "C:\path\to\output.csv"
+$outputPath = "./test-data/output.csv"
 $output | Export-Csv -Path $outputPath -NoTypeInformation
