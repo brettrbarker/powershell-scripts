@@ -6,27 +6,41 @@
 # Usage: ./Compare-CSV.ps1
 ################################################
 
-# Define the paths to the input CSV files
-$csv1Path = "./test-data/file1.csv"
-$csv2Path = "./test-data/file2.csv"
+function Compare-CSV {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Csv1Path,
+        [Parameter(Mandatory=$true)]
+        [string]$Csv2Path,
+        [Parameter(Mandatory=$true)]
+        [string]$ComparisonColumn,
+        [Parameter(Mandatory=$false)]
+        [string]$OutputPath
+    )
+    # Import the CSV files as arrays of objects
+    $csv1 = Import-Csv -Path $csv1Path
+    $csv2 = Import-Csv -Path $csv2Path
 
-# Import the CSV files as arrays of objects
-$csv1 = Import-Csv -Path $csv1Path
-$csv2 = Import-Csv -Path $csv2Path
+    # Compare the two CSV files based on the matching column
+    $comparison = Compare-Object -ReferenceObject $csv1 -DifferenceObject $csv2 -Property $ComparisonColumn -PassThru -IncludeEqual
 
-# Define the name of the column to match on
-$columnName = "name"
+    # Add a new column to the output CSV file indicating the status change
+    $output = $comparison | Select-Object *,@{Name="Status Change";Expression={
+        if($_.SideIndicator -eq "<="){"Deleted"}
+        elseif($_.SideIndicator -eq "=>"){"Created"}
+        else{"Unchanged"}
+    }}
 
-# Compare the two CSV files based on the matching column
-$comparison = Compare-Object -ReferenceObject $csv1 -DifferenceObject $csv2 -Property $columnName -PassThru -IncludeEqual
+    # Get only the filename from the end of the path for $Csv1Path and $Csv2Path
+    $Csv1Name = $Csv1Path.Split("/")[-1]
+    $Csv2Name = $Csv2Path.Split("/")[-1]
 
-# Add a new column to the output CSV file indicating the status change
-$output = $comparison | Select-Object *,@{Name="Status Change";Expression={
-    if($_.SideIndicator -eq "<="){"Deleted"}
-    elseif($_.SideIndicator -eq "=>"){"Created"}
-    else{"Unchanged"}
-}}
+    # Export the output CSV file
+    # Check if $OutputPath is null, if so, use the default path
+    if(!$OutputPath){
+        $OutputPath = $Csv1Path.Replace(".csv","-") + $Csv2Name.Replace(".csv","-comparison.csv")
+    }
+    $output | Export-Csv -Path $OutputPath -NoTypeInformation
 
-# Export the output CSV file
-$outputPath = "./test-data/output.csv"
-$output | Export-Csv -Path $outputPath -NoTypeInformation
+}
