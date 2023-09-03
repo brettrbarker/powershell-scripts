@@ -18,6 +18,22 @@ function Compare-CSV {
         [Parameter(Mandatory=$false)]
         [string]$OutputPath
     )
+
+    try {
+        # Check if the CSV files exist
+        if(!(Test-Path $Csv1Path)){
+            throw "Error: $Csv1Path does not exist!"
+        }
+        if(!(Test-Path $Csv2Path)){
+            throw "Error: $Csv2Path does not exist!"
+        }
+    }
+    catch {
+        Write-Host $_
+        return
+    }
+    Write-Host "##### CSV Comparison Script #####" -ForegroundColor Green
+
     # Import the CSV files as arrays of objects
     $csv1 = Import-Csv -Path $csv1Path
     $csv2 = Import-Csv -Path $csv2Path
@@ -52,4 +68,13 @@ function Compare-CSV {
     catch {
         Write-Host "Error: Failed to save output file. $($Error[0].Exception.Message)"
     }
+}
+
+
+# Get absolute path of the script
+$ScriptPath = $MyInvocation.MyCommand.Path
+
+# Call the Compare-CSV function if the script is run directly either by relative or absolute path
+if($MyInvocation.InvocationName -eq ".\Compare-CSV.ps1" -or $MyInvocation.InvocationName -eq $ScriptPath){
+    Compare-CSV
 }
