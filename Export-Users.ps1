@@ -21,7 +21,7 @@ $exportFileNameRegular = "RegularUsers-$(Get-Date -f yyyymmdd).csv"
 $exportFileNamePrivileged = "PrivilegedUsers-$(Get-Date -f yyyymmdd).csv"
 
 # Declare a sub-function that will check if the export location exists
-function Check-ExportLocation {
+function Test-ExportLocation {
     # If the export location does not exist, show and error message
     if (!(Test-Path $exportLocation)) {
         Write-Host "Export location ($exportLocation) does not exist!" -ForegroundColor Red
@@ -52,7 +52,7 @@ while ($true) {
 
     # If user selects 1, print "Exporting Regular Users List"
     if ($selection -eq 1) {
-        $locationStatus = Check-ExportLocation
+        $locationStatus = Test-ExportLocation
         if ($locationStatus -eq $true) {
             Write-Host "Exporting Regular Users List"
 
@@ -60,7 +60,7 @@ while ($true) {
             Get-ADUser -Filter * -Properties * | Select-Object Name, SamAccountName, DistinguishedName, Enabled | Export-Csv -Path "$exportLocation\$exportFileNameRegular"-NoTypeInformation
             Write-Host "Export Complete"
             Start-Sleep -s 3
-            clear
+            Clear-Host
         }
     }
 
@@ -74,7 +74,7 @@ while ($true) {
             Get-ADUser -Filter * -Properties * | Select-Object Name, SamAccountName, DistinguishedName, Enabled | Export-Csv -Path "$exportLocation\$exportFileNamePrivileged"-NoTypeInformation
             Write-Host "Export Complete"
             Start-Sleep -s 3
-            clear
+            Clear-Host
             }
     }
 
@@ -92,7 +92,7 @@ while ($true) {
                 if ($days -isnot [int]) {
                     Write-Host "Invalid number of days"
                     Start-Sleep -s 1
-                    clear
+                    Clear-Host
                 }
             }
         }
