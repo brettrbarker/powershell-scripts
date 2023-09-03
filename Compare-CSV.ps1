@@ -33,14 +33,26 @@ function Compare-CSV {
     }}
 
     # Get only the filename from the end of the path for $Csv1Path and $Csv2Path
-    #$Csv1Name = $Csv1Path.Split("/")[-1]
-    $Csv2Name = $Csv2Path.Split("/")[-1]
+    $Csv1Name = $Csv1Path.Split("\")[-1]
+    $Csv2Name = $Csv2Path.Split("\")[-1]
+    # Get the directory of the first CSV file
+    $OutputDirectory = $Csv1Path.Replace($Csv1Name,"")
 
     # Export the output CSV file
     # Check if $OutputPath is null, if so, use the default path
-    if(!$OutputPath){
-        $OutputPath = $Csv1Path.Replace(".csv","-") + $Csv2Name.Replace(".csv","-comparison.csv")
+    if(!$OutputPath -or $OutputPath -eq ""){
+        # $OutputPath = $Csv1Path.Replace(".csv","-") + $Csv2Name.Replace(".csv","-comparison.csv")
+        $name1 = $Csv1Name.Replace(".csv","-")
+        $name2 = $Csv2Name.Replace(".csv","-comparison.csv")
+        $newname = $Csv1Name.Replace(".csv","-") + $Csv2Name.Replace(".csv","-comparison.csv")
+        $OutputPath = Join-Path -Path $OutputDirectory -ChildPath $newname
     }
-    $output | Export-Csv -Path $OutputPath -NoTypeInformation
-
+    try {
+        $output | Export-Csv -Path $OutputPath -NoTypeInformation
+        # $output | Export-Csv -Path "C:\Users\brett\Documents\Git-Repos\powershell-scripts\test-data\test3.csv" -NoTypeInformation
+        Write-Host "Output file saved to $OutputPath"
+    }
+    catch {
+        Write-Host "Error: Failed to save output file. $($Error[0].Exception.Message)"
+    }
 }
