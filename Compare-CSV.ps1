@@ -28,12 +28,12 @@ function Compare-CSV {
     # Add a new column to the output CSV file indicating the status change
     $output = $comparison | Select-Object *,@{Name="Status Change";Expression={
         if($_.SideIndicator -eq "<="){"Deleted"}
-        elseif($_.SideIndicator -eq "=>"){"Created"}
+        elseif($_.SideIndicator -eq "=>"){"Added"}
         else{"Unchanged"}
     }}
 
     # Get only the filename from the end of the path for $Csv1Path and $Csv2Path
-    $Csv1Name = $Csv1Path.Split("/")[-1]
+    #$Csv1Name = $Csv1Path.Split("/")[-1]
     $Csv2Name = $Csv2Path.Split("/")[-1]
 
     # Export the output CSV file
