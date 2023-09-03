@@ -5,6 +5,8 @@
 # Ignore my test data directory
 /test-data
 /test-data/*
+/test-data2
+/test-data2/*
 learn.ps1
 
 # Ignore user-specific files and directories

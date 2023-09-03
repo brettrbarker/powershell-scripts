@@ -1,6 +1,0 @@
-"name","age","gender","SideIndicator","Status Change"
-"John","30","Male","==","Unchanged"
-"Bob","40","Male","==","Unchanged"
-"Frank","22","Male","==","Unchanged"
-"Alice","35","Female","=>","Created"
-"Jane","25","Female","<=","Deleted"
