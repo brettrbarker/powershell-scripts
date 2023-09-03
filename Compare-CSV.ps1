@@ -42,14 +42,11 @@ function Compare-CSV {
     # Check if $OutputPath is null, if so, use the default path
     if(!$OutputPath -or $OutputPath -eq ""){
         # $OutputPath = $Csv1Path.Replace(".csv","-") + $Csv2Name.Replace(".csv","-comparison.csv")
-        $name1 = $Csv1Name.Replace(".csv","-")
-        $name2 = $Csv2Name.Replace(".csv","-comparison.csv")
         $newname = $Csv1Name.Replace(".csv","-") + $Csv2Name.Replace(".csv","-comparison.csv")
         $OutputPath = Join-Path -Path $OutputDirectory -ChildPath $newname
     }
     try {
         $output | Export-Csv -Path $OutputPath -NoTypeInformation
-        # $output | Export-Csv -Path "C:\Users\brett\Documents\Git-Repos\powershell-scripts\test-data\test3.csv" -NoTypeInformation
         Write-Host "Output file saved to $OutputPath"
     }
     catch {
