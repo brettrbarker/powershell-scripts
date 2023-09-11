@@ -58,6 +58,20 @@ function Format-SoftwareList {
         }
         # if Software has a "-" at the end of it, remove it and trailing whitespace.
         $_.Software = $_.Software -replace '-$','' -replace '\s+$',''
+        
+
+        if($_.Software -like "*.el7*" -or $_.Software -like "*.el8*") {
+            $versionNumber = $_.Software -replace '[a-zA-Z-_0-9+]*[a-zA-Z][0-9]*-([\d.-]+)[a-zA-Z]*\.el[78].*','$1'
+            if ($_.Software -ne $versionNumber) {
+                $_.Version = $versionNumber
+            }
+            #$_.Version = $_.Software -replace '[a-zA-Z-_]*[a-zA-Z][0-9]*-([\d.-]+)[a-zA-Z]*\.el[78].*','$1'
+            $_.Software = $_.Software -replace $_.Version,''
+            #    $_.Version = $_.Software -replace '.*(\d+-\d+-\d+).*','$1'
+         #   $_.Software = $_.Software -replace '(\.el\d+).*','$1'
+        }
+
+        # Return the object
         $_
     }
 
