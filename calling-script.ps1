@@ -9,4 +9,4 @@
 #Compare-CSV
 
 # Call the Format-SoftwareList function
-#Format-SoftwareList -SoftwareListPath "./test-data/software1.csv"
+Format-SoftwareList -SoftwareListPath "./test-data/software1.csv"
