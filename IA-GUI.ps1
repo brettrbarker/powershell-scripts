@@ -2,15 +2,23 @@ Add-Type -AssemblyName System.Windows.Forms
 
 # Create the form
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "PowerShell GUI"
-$form.Size = New-Object System.Drawing.Size(400,300)
+$form.Text = "IA Tools"
+$form.Size = New-Object System.Drawing.Size(600,300)
 $form.StartPosition = "CenterScreen"
 
-# Create the label
-$label = New-Object System.Windows.Forms.Label
-$label.Location = New-Object System.Drawing.Point(10,20)
-$label.Size = New-Object System.Drawing.Size(380,20)
-$label.Text = "Select two CSV files to compare:"
+# Create Description Label
+$descriptionLabel = New-Object System.Windows.Forms.Label
+$descriptionLabel.Location = New-Object System.Drawing.Point(10,10)
+$descriptionLabel.Size = New-Object System.Drawing.Size(380,20)
+$descriptionLabel.Text = "Welcome to the IA Tools! Please select an option below:"
+$form.Controls.Add($descriptionLabel)
+
+
+# # Create the label
+# $label = New-Object System.Windows.Forms.Label
+# $label.Location = New-Object System.Drawing.Point(10,30)
+# $label.Size = New-Object System.Drawing.Size(380,20)
+# $label.Text = "Select two CSV files to compare:"
 
 # Create the Compare button
 $compareButton = New-Object System.Windows.Forms.Button

@@ -8,7 +8,55 @@
 # Usage: ./Format-SoftwareList.ps1 -SoftwareListPath "./test-data/software1.csv" -OutputPath "./test-data/software1-formatted.csv"
 # Original CSV format: "Software","Count","Detection Method"
 ################################################
-
+function Enter-SoftwareMenu {
+    while ($true) {
+        # Print Menu
+        Write-Host "##### SOFTWARE MENU #####" -ForegroundColor Green
+        Write-Host "1. Format Software List"
+        Write-Host "2. Compare Software Lists"
+        Write-Host "0. Exit"
+    
+        # Prompt user to select 1, 2, or 0 for Export Regular users, Privileged users, or Exit.
+        $selection = Read-Host "Selection"
+    
+        # If user selects 1, execute Format-SoftwareList.ps1
+        if ($selection -eq 1) {
+            # Prompt user to enter the path to the software list CSV file
+            $SoftwareListPath = Read-Host "Enter the path to the software list CSV file"
+            # Check if the CSV file exists
+            if(!(Test-Path $SoftwareListPath)){
+                Write-Host "Error: $SoftwareListPath does not exist!"
+                Start-Sleep -s 3
+                Clear-Host
+                continue
+            }
+            # Prompt user to enter the path to the output CSV file or leave blank to use the default path
+            $OutputPath = Read-Host "Enter the path to the output CSV file or leave blank to use the default path"
+            # Check if the Output path exists
+            if($OutputPath -and !(Test-Path $OutputPath)){
+                Write-Host "Error: $OutputPath does not exist!"
+                Start-Sleep -s 3
+                Clear-Host
+                continue
+            }
+            # Execute Format-SoftwareList.ps1 use output path if provided
+            if($OutputPath){
+                Format-SoftwareList -SoftwareListPath $SoftwareListPath -OutputPath $OutputPath
+            }
+            # Execute Format-SoftwareList.ps1 use default output path if not provided
+            else {
+            Format-SoftwareList -SoftwareListPath $SoftwareListPath
+            }
+        }
+        # If user selects 2, execute Compare-CSV.ps1
+        elseif ($selection -eq 2) {
+            Compare-CSV -Csv1Path $SoftwareListPath -Csv2Path $SoftwareListPath -ComparisonColumn Software
+        }
+        elseif ($selection -eq 0) {
+            break
+        }
+    }
+}
 function Format-SoftwareList {
     [CmdletBinding()]
     param(
