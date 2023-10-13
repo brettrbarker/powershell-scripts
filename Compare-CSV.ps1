@@ -49,8 +49,8 @@ function Compare-CSV {
     }}
 
     # Get only the filename from the end of the path for $Csv1Path and $Csv2Path
-    $Csv1Name = $Csv1Path.Split("\")[-1]
-    $Csv2Name = $Csv2Path.Split("\")[-1]
+    $Csv1Name = Split-Path -Leaf $Csv1Path
+    $Csv2Name = Split-Path -Leaf $Csv2Path
     # Get the directory of the first CSV file
     $OutputDirectory = $Csv1Path.Replace($Csv1Name,"")
 
