@@ -1,6 +1,12 @@
 # Tite: AD User Export Script
 # Author: Brett Barker
-# Date: 29 August 2023
+# Date: 16 October 2023
+# CHANGES:
+# 2023-10-16 - specific ad-user fields added; porting other changes.
+#
+#
+
+
 
 # Import Active Directory Module
 Import-Module ActiveDirectory
@@ -20,6 +26,10 @@ $exportLocation = "$HOME\Downloads"
 $exportLocationALT = "I:\" +  $(Get-Date -f yyyy)
 $exportFileNameRegular = "RegularUsers-$(Get-Date -f yyyymmdd).csv"
 $exportFileNamePrivileged = "PrivilegedUsers-$(Get-Date -f yyyymmdd).csv"
+$exportFileNameService = "ServiceAccounts-$(Get-Date -f yyyymmdd).csv"
+$OURegular = Get-ADOrganizationalUnit -Filter 'Name -like "01-Users"' | Select-Object -ExpandProperty "DistinguishedName" | Out-String
+$OUPrivileged = Get-ADOrganizationalUnit -Filter 'Name -like "02-Privileged*"' | Select-Object -ExpandProperty "DistinguishedName" | Out-String
+$OUService = Get-ADOrganizationalUnit -Filter 'Name -like "*Service-Accounts*"' | Select-Object -ExpandProperty "DistinguishedName" | Out-String
 
 # Declare a sub-function that will check if the export location exists
 function Test-ExportLocation {
@@ -45,13 +55,14 @@ function Export-ADData{
         Write-Host "$exportLocation" -ForegroundColor Red    
         Write-Host "1. Export All Regular Users List"
         Write-Host "2. Export All Privileged Users List"
-        Write-Host "3. Print Users Created in Last X Days"
+        Write-Host "3. Export All Service Accounts List"
+        Write-Host "4. Print Users Created in Last X Days"
         Write-Host "..."
         Write-Host "8. Run Comparison"
         Write-Host "9. Change Export Location"
         Write-Host "0. Exit"
 
-        # Prompt user to select 1, 2, or 0 for Export Regular users, Privileged users, or Exit.
+        # Prompt user for selection.
         $selection = Read-Host "Selection"
 
         # If user selects 1, print "Exporting Regular Users List"
@@ -60,29 +71,44 @@ function Export-ADData{
             if ($locationStatus -eq $true) {
                 Write-Host "Exporting Regular Users List"
                 # Execute Get-ADUser command to export Regular Users List
-                Get-ADUser -Filter * -Properties * | Select-Object Name, SamAccountName, DistinguishedName, Enabled | Export-Csv -Path "$exportLocation\$exportFileNameRegular"-NoTypeInformation
+                Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OURegular | Select-Object Surname, GivenName, displayname, SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 1}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Export-Csv -Path "$exportLocation/$exportFileNameRegular" -NoTypeInformation
+                #Get-ADUser -Filter * -Properties * | Select-Object Name, SamAccountName, DistinguishedName, Enabled | Export-Csv -Path "$exportLocation\$exportFileNameRegular"-NoTypeInformation
                 Write-Host "Export Complete"
-                Start-Sleep -s 3
+                Start-Sleep -s 2
                 Clear-Host
             }
         }
 
         # If user selects 2, print "Exporting Privileged Users List"
         elseif ($selection -eq 2) {
-            $locationStatus = Check-ExportLocation
+            $locationStatus = Test-ExportLocation
                 if ($locationStatus -eq $true) {
                 Write-Host "Exporting Privileged Users List"
 
                 # Execute Get-ADUser command to export Privileged Users List
-                Get-ADUser -Filter * -Properties * | Select-Object Name, SamAccountName, DistinguishedName, Enabled | Export-Csv -Path "$exportLocation\$exportFileNamePrivileged"-NoTypeInformation
+                Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OUPrivileged | Select-Object Surname, GivenName, displayname, SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 2}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Export-Csv -Path "$exportLocation/$exportFileNamePrivileged" -NoTypeInformation
+                #Get-ADUser -Filter * -Properties * | Select-Object Name, SamAccountName, DistinguishedName, Enabled | Export-Csv -Path "$exportLocation\$exportFileNamePrivileged"-NoTypeInformation
                 Write-Host "Export Complete"
-                Start-Sleep -s 3
+                Start-Sleep -s 2
                 Clear-Host
                 }
         }
 
-        # If user selects 3, print User list where "Created" date is X days or less
+        # If user selects 3, print "Exporting Service Accounts List"
         elseif ($selection -eq 3) {
+            $locationStatus = Test-ExportLocation
+                if ($locationStatus -eq $true) {
+                Write-Host "Exporting Service Account List"
+
+                # Execute Get-ADUser command to export Service Account
+                Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OUService | Select-Object SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 1}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Export-Csv -Path "$exportLocation/$exportFileNameService" -NoTypeInformation
+                Write-Host "Export Complete"
+                Start-Sleep -s 2
+                Clear-Host
+                }
+        }
+        # If user selects 3, print User list where "Created" date is X days or less
+        elseif ($selection -eq 4) {
             $days = ""
             while ($days -isnot [int]) {
                 # Prompt User to enter number of days
@@ -106,12 +132,15 @@ function Export-ADData{
 
             # Get current date
             $currentDate = Get-Date
-
+            
             # Get date 7 days ago
             $dateXDaysAgo = $currentDate.AddDays(-$days)
-
+            Write-Host $OUPrivileged
             # Execute Get-ADUser command to show users created in the last X days
-            Get-ADUser -Filter * -Properties * | Where-Object {$_.whenCreated -ge $dateXDaysAgo} | Select-Object Name, SamAccountName, DistinguishedName, Enabled 
+            Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OURegular | Select-Object Surname, GivenName, displayname, SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 1}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.whenCreated -ge $dateXDaysAgo}
+            #Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OUPrivileged | Select-Object Surname, GivenName, displayname, SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 2}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.whenCreated -ge $dateXDaysAgo}
+            #Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OUService | Select-Object SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 1}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.whenCreated -ge $dateXDaysAgo}
+            #Get-ADUser -Filter * -Properties * -SearchBase $OURegular | Where-Object {$_.whenCreated -ge $dateXDaysAgo} | Select-Object Name, SamAccountName, DistinguishedName, Enabled 
             Write-Host ""
             pause
 
@@ -162,3 +191,4 @@ function Export-ADData{
 if ($MyInvocation.InvocationName -eq ".\Export-Users.ps1" -or $MyInvocation.InvocationName -eq $ScriptPath) {
     Export-ADData
 }
+Export-ADData
