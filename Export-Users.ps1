@@ -10,6 +10,7 @@
 . .\Compare-CSV.ps1
 
 
+
 # Import Active Directory Module
 Import-Module ActiveDirectory
 
@@ -24,7 +25,7 @@ if ($? -eq $false) {
 
 ## SET VARIABLES
 # Set default file export location variable
-$exportLocation = "$HOME\Downloads"
+$global:exportLocation = "$HOME\Downloads"
 $exportLocationALT = "I:\" +  $(Get-Date -f yyyy)
 $exportFileNameRegular = "RegularUsers-$(Get-Date -f yyyymmdd).csv"
 $exportFileNamePrivileged = "PrivilegedUsers-$(Get-Date -f yyyymmdd).csv"
@@ -48,6 +49,30 @@ function Test-ExportLocation {
     return $true
 }
 
+function Edit-WorkingDirectory {
+                # while locationStatus is false, prompt user to enter new export location
+                $locationStatus = $false
+                while ($locationStatus -eq $false) {
+                    $origExportLocation = $exportLocation
+                    $newExportLocation = Read-Host "Enter new working directory location or '1' for $exportLocationALT"
+                    if ($newExportLocation -eq "1") {
+                        $global:exportLocation = $exportLocationALT
+                        $locationStatus = Test-ExportLocation
+                        if ($locationStatus -eq $false) {
+                            $global:exportLocation = $origExportLocation
+                        }
+                    }
+                    elseif ($newExportLocation -eq "") {
+                        break
+                    }
+                    else {
+                        $global:exportLocation = $newExportLocation
+                    }
+                    $locationStatus = Test-ExportLocation
+                }
+                Write-Host "Working Directory: $exportLocation"
+                Start-Sleep -s 2
+}
 function Export-ADData{
     # Create While True Loop to Print Menu unless user selects 0 to exit
     while ($true) {
@@ -239,11 +264,7 @@ function Export-ADData{
 
         # If user selects 9, prompt user to enter new export location
         elseif ($selection -eq 9) {
-            $exportLocation = Read-Host "Enter new working directory location or '1' for $exportLocationALT"
-            if ($exportLocation -eq "1") {
-                $exportLocation = $exportLocationALT
-            }
-            Write-Host "Exporting to $exportLocation"
+            Edit-WorkingDirectory
         }
 
         # If user selects 0, print "Exiting"
