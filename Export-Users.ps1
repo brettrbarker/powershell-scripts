@@ -6,6 +6,8 @@
 # 2023-10-17 - fixed dynamic OU discovery
 #
 
+# Load the Compare-CSV.ps1 script
+. .\Compare-CSV.ps1
 
 
 # Import Active Directory Module
@@ -54,15 +56,15 @@ function Export-ADData{
         if ($adImportError -eq $true) {
             Write-Host "ERROR: Active Directory Module failed to import!" -ForegroundColor Red
         }
-        Write-Host "##### Exporting to: " -NoNewline -ForegroundColor Green
+        Write-Host "##### Working Directory: " -NoNewline -ForegroundColor Green
         Write-Host "$exportLocation" -ForegroundColor Red    
-        Write-Host "1. Export All Regular Users List"
-        Write-Host "2. Export All Privileged Users List"
-        Write-Host "3. Export All Service Accounts List"
-        Write-Host "4. Print Users Created in Last X Days"
+        Write-Host "1. Export List of All Regular User Accounts"
+        Write-Host "2. Export List of All Privileged User Accounts"
+        Write-Host "3. Export List of All Service Accounts"
+        Write-Host "4. Print Accounts Created in Last X Days"
+        Write-Host "5. Compare Previous Exported Lists"
         Write-Host "..."
-        Write-Host "8. Run Comparison"
-        Write-Host "9. Change Export Location"
+        Write-Host "9. Change Working Directory"
         Write-Host "0. Exit"
 
         # Prompt user for selection.
@@ -129,7 +131,7 @@ function Export-ADData{
                 }
             }
 
-            Write-Host "Printing Users Created in the Last $days Days"
+            Write-Host "Printing Accounts Created in the Last $days Days"
 
             # Execute Get-ADUser command to show users created in the last 7 days
 
@@ -139,28 +141,96 @@ function Export-ADData{
             # Get date 7 days ago
             $dateXDaysAgo = $currentDate.AddDays(-$days)
             # Execute Get-ADUser command to show users created in the last X days
-            Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OURegular | Select-Object Surname, GivenName, displayname, SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 1}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.whenCreated -ge $dateXDaysAgo}
-            Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OUPrivileged | Select-Object Surname, GivenName, displayname, SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 2}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.whenCreated -ge $dateXDaysAgo}
-            Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OUService | Select-Object SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 1}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.whenCreated -ge $dateXDaysAgo}
+            Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OURegular | Select-Object Surname, GivenName, displayname, SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 1}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.Created -ge $dateXDaysAgo}
+            Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OUPrivileged | Select-Object Surname, GivenName, displayname, SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 2}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.Created -ge $dateXDaysAgo}
+            Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OUService | Select-Object SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 1}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.Created -ge $dateXDaysAgo}
             
             Write-Host ""
             pause
 
         }
 
-        # If user selects 8, run Compare-CSV.ps1 script with CSV1 and CSV2 as parameters. These should be the last two files named like "RegularUsers-$(Get-Date -f yyyymmdd).csv"
-        elseif ($selection -eq 8) {
+        # If user selects 5, run Compare-CSV.ps1 script with CSV1 and CSV2 as parameters. These should be the last two files named like "RegularUsers-$(Get-Date -f yyyymmdd).csv"
+        elseif ($selection -eq 5) {
             $locationStatus = Test-ExportLocation
             if ($locationStatus -eq $true) {
-                Write-Host "Running Comparison"
+                # Prompt user "Which set of files do you want to compare?"
+                Write-Host "Which set of files do you want to compare?"
+                Write-Host "1. Last two Regular Users"
+                Write-Host "2. Last two Privileged Users"
+                Write-Host "3. Last two Service Accounts"
+                Write-Host "4. Manual Selection"
+                Write-Host "0. Cancel and Go Back"
+                $selection = Read-Host "Selection"
 
-                # Get the last two files named like "RegularUsers-$(Get-Date -f yyyymmdd).csv"
-                $csvFiles = Get-ChildItem -Path $exportLocation -Filter "*.csv" | Sort-Object -Property LastWriteTime -Descending | Select-Object -First 2
-                $csv1 = $csvFiles[0]
-                $csv2 = $csvFiles[1]
+                # If user selects 1, set $filter to "RegularUsers-*.csv"
+                if ($selection -eq 1) {
+                    $filter = "RegularUsers-*.csv"
+                }
+                elseif ($selection -eq 2) {
+                    $filter = "PrivilegedUsers-*.csv"
+                }
+                elseif ($selection -eq 3) {
+                    $filter = "ServiceAccounts-*.csv"
+                }
+                elseif ($selection -eq 4) {
+                    $filter = $null
+                    # Prompt user to enter CSV1 and CSV2 file names
+                    $csv1 = Read-Host "Enter CSV1 file name"
+                    $csv2 = Read-Host "Enter CSV2 file name"
+                    if ($csv1 -eq $csv2) {
+                        Write-Host "CSV1 and CSV2 cannot be the same file"
+                        Start-Sleep -s 1
+                        Clear-Host
+                        continue
+                    }
+                    $csv1 = Get-ChildItem -Path $exportLocation -Filter $csv1
+                    $csv2 = Get-ChildItem -Path $exportLocation -Filter $csv2
+                    if ($null -eq $csv1 -or $null -eq $csv2) {
+                        Write-Host "CSV1 or CSV2 not found"
+                        Start-Sleep -s 1
+                        Clear-Host
+                        continue
+                    }
+                    
+                }
+                elseif ($selection -eq 0) {
+                    continue
+                }
+                else {
+                    Write-Host "Invalid Selection"
+                    Start-Sleep -s 1
+                    Clear-Host
+                    continue
+                }
+                if ($null -ne $filter) {
+                    Write-Host "Filter: $filter"
+                    # Get the last two files in the export location that match the filter
+                    $csvFiles = Get-ChildItem -Path $exportLocation -Filter $filter | Where-Object { $_.Name -notlike "*comparison*" } | Sort-Object -Property LastWriteTime -Descending | Select-Object -First 2
+                    $csv1 = $csvFiles[0]
+                    $csv2 = $csvFiles[1]
+                }
+
+                if ($null -eq $csv1 -or $null -eq $csv2) {
+                    Write-Host "No CSV files found"
+                    Start-Sleep -s 2
+                    Clear-Host
+                    continue
+                }
+
+                Write-Host "CSV1: $($csv1.FullName)"
+                Write-Host "CSV2: $($csv2.FullName)"
+                # Prompt to confirm
+                $confirm = Read-Host "Confirm comparison (y/n)"
+                if ($confirm -ne "y") {
+                    Write-Host "Comparison cancelled"
+                    Start-Sleep -s 2
+                    Clear-Host
+                    continue
+                }
 
                 # Execute Compare-CSV.ps1 script with CSV1 and CSV2 as parameters
-                .\Compare-CSV.ps1 -Csv1Path $csv1.FullName -Csv2Path $csv2.FullName -ComparisonColumn SamAccountName -OutputPath $exportLocation
+                Compare-CSV -Csv1Path $csv1.FullName -Csv2Path $csv2.FullName -ComparisonColumn SamAccountName
                 Write-Host "Comparison Complete"
                 Start-Sleep -s 3
                 Clear-Host
@@ -169,7 +239,7 @@ function Export-ADData{
 
         # If user selects 9, prompt user to enter new export location
         elseif ($selection -eq 9) {
-            $exportLocation = Read-Host "Enter new export location or '1' for $exportLocationALT"
+            $exportLocation = Read-Host "Enter new working directory location or '1' for $exportLocationALT"
             if ($exportLocation -eq "1") {
                 $exportLocation = $exportLocationALT
             }
@@ -178,10 +248,10 @@ function Export-ADData{
 
         # If user selects 0, print "Exiting"
         elseif ($selection -eq 0) {
-            break
+            exit
         }
 
-        # If user selects anything other than 1, 2, or 0, print "Invalid Selection"
+        # If user selects anything else, print "Invalid Selection"
         else {
             Write-Host "Invalid Selection"
             Start-Sleep -s 1
@@ -193,3 +263,4 @@ function Export-ADData{
 if ($MyInvocation.InvocationName -eq ".\Export-Users.ps1" -or $MyInvocation.InvocationName -eq $ScriptPath) {
     Export-ADData
 }
+Export-ADData
