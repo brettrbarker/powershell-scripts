@@ -1,9 +1,9 @@
 # Tite: AD User Export Script
 # Author: Brett Barker
-# Date: 16 October 2023
+# Date: 17 October 2023
 # CHANGES:
 # 2023-10-16 - specific ad-user fields added; porting other changes.
-#
+# 2023-10-17 - fixed dynamic OU discovery
 #
 
 
@@ -20,16 +20,19 @@ if ($? -eq $false) {
     Start-Sleep -s 3
 }
 
+## SET VARIABLES
 # Set default file export location variable
-
 $exportLocation = "$HOME\Downloads"
 $exportLocationALT = "I:\" +  $(Get-Date -f yyyy)
 $exportFileNameRegular = "RegularUsers-$(Get-Date -f yyyymmdd).csv"
 $exportFileNamePrivileged = "PrivilegedUsers-$(Get-Date -f yyyymmdd).csv"
 $exportFileNameService = "ServiceAccounts-$(Get-Date -f yyyymmdd).csv"
-$OURegular = Get-ADOrganizationalUnit -Filter 'Name -like "01-Users"' | Select-Object -ExpandProperty "DistinguishedName" | Out-String
-$OUPrivileged = Get-ADOrganizationalUnit -Filter 'Name -like "02-Privileged*"' | Select-Object -ExpandProperty "DistinguishedName" | Out-String
-$OUService = Get-ADOrganizationalUnit -Filter 'Name -like "*Service-Accounts*"' | Select-Object -ExpandProperty "DistinguishedName" | Out-String
+
+# Set the filter to search for your regular user, privileged, and service account OUs
+$OURegular = Get-ADOrganizationalUnit -Filter 'Name -like "01-Users"' | Select-Object -ExpandProperty "DistinguishedName" 
+$OUPrivileged = Get-ADOrganizationalUnit -Filter 'Name -like "02-Privileged*"' | Select-Object -ExpandProperty "DistinguishedName"
+$OUService = Get-ADOrganizationalUnit -Filter 'Name -like "*Service-Accounts*"' | Select-Object -ExpandProperty "DistinguishedName"
+
 
 # Declare a sub-function that will check if the export location exists
 function Test-ExportLocation {
@@ -107,7 +110,7 @@ function Export-ADData{
                 Clear-Host
                 }
         }
-        # If user selects 3, print User list where "Created" date is X days or less
+        # If user selects 4, print User list where "Created" date is X days or less
         elseif ($selection -eq 4) {
             $days = ""
             while ($days -isnot [int]) {
@@ -135,12 +138,11 @@ function Export-ADData{
             
             # Get date 7 days ago
             $dateXDaysAgo = $currentDate.AddDays(-$days)
-            Write-Host $OUPrivileged
             # Execute Get-ADUser command to show users created in the last X days
             Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OURegular | Select-Object Surname, GivenName, displayname, SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 1}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.whenCreated -ge $dateXDaysAgo}
-            #Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OUPrivileged | Select-Object Surname, GivenName, displayname, SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 2}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.whenCreated -ge $dateXDaysAgo}
-            #Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OUService | Select-Object SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 1}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.whenCreated -ge $dateXDaysAgo}
-            #Get-ADUser -Filter * -Properties * -SearchBase $OURegular | Where-Object {$_.whenCreated -ge $dateXDaysAgo} | Select-Object Name, SamAccountName, DistinguishedName, Enabled 
+            Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OUPrivileged | Select-Object Surname, GivenName, displayname, SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 2}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.whenCreated -ge $dateXDaysAgo}
+            Get-ADUser -Properties *,msDS-UserPasswordExpiryTimeComputed -Filter * -SearchBase $OUService | Select-Object SamAccountName, @{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 1}}, Enabled, LastLogonDate, Created, PasswordLastSet, PasswordNeverExpires, @{Name="PasswordExpiryDate"; Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}, Description | Where-Object {$_.whenCreated -ge $dateXDaysAgo}
+            
             Write-Host ""
             pause
 
@@ -191,4 +193,3 @@ function Export-ADData{
 if ($MyInvocation.InvocationName -eq ".\Export-Users.ps1" -or $MyInvocation.InvocationName -eq $ScriptPath) {
     Export-ADData
 }
-Export-ADData
