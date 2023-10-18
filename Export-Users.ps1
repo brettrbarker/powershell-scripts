@@ -284,4 +284,3 @@ function Export-ADData{
 if ($MyInvocation.InvocationName -eq ".\Export-Users.ps1" -or $MyInvocation.InvocationName -eq $ScriptPath) {
     Export-ADData
 }
-Export-ADData
