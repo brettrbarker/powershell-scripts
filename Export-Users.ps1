@@ -27,9 +27,9 @@ if ($? -eq $false) {
 # Set default file export location variable
 $global:exportLocation = "$HOME\Downloads"
 $exportLocationALT = "I:\" +  $(Get-Date -f yyyy)
-$exportFileNameRegular = "RegularUsers-$(Get-Date -f yyyymmdd).csv"
-$exportFileNamePrivileged = "PrivilegedUsers-$(Get-Date -f yyyymmdd).csv"
-$exportFileNameService = "ServiceAccounts-$(Get-Date -f yyyymmdd).csv"
+$exportFileNameRegular = "RegularUsers-$(Get-Date -f yyyyMMdd).csv"
+$exportFileNamePrivileged = "PrivilegedUsers-$(Get-Date -f yyyyMMdd).csv"
+$exportFileNameService = "ServiceAccounts-$(Get-Date -f yyyyMMdd).csv"
 
 # Set the filter to search for your regular user, privileged, and service account OUs
 $OURegular = Get-ADOrganizationalUnit -Filter 'Name -like "01-Users"' | Select-Object -ExpandProperty "DistinguishedName" 
@@ -209,8 +209,8 @@ function Export-ADData{
                         Clear-Host
                         continue
                     }
-                    $csv1 = Get-ChildItem -Path $exportLocation -Filter $csv1
-                    $csv2 = Get-ChildItem -Path $exportLocation -Filter $csv2
+                    $csv1 = Get-ChildItem -Path $exportLocation -Filter "*$csv1*" | Where-Object { $_.Name -notlike "*comparison*" } | Select-Object -First 1
+                    $csv2 = Get-ChildItem -Path $exportLocation -Filter "*$csv2*" | Where-Object { $_.Name -notlike "*comparison*" } | Select-Object -First 1
                     if ($null -eq $csv1 -or $null -eq $csv2) {
                         Write-Host "CSV1 or CSV2 not found"
                         Start-Sleep -s 1
