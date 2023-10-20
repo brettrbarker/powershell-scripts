@@ -1,9 +1,11 @@
 ################################################
 # CSV Comparison Script
 # Author: Brett Barker
-# Date: 2023-08-30
+# Date: 2023-10-20
 # Description: This script compares two CSV files and outputs the differences to a new CSV file.
 # Usage: ./Compare-CSV.ps1
+# CHANGES:
+# 2023-10-20 - Reverse compare order to keep unchanged items from the first newest CSV file
 ################################################
 
 function Compare-CSV {
@@ -39,7 +41,7 @@ function Compare-CSV {
     $csv2 = Import-Csv -Path $csv2Path
 
     # Compare the two CSV files based on the matching column
-    $comparison = Compare-Object -ReferenceObject $csv1 -DifferenceObject $csv2 -Property $ComparisonColumn -PassThru -IncludeEqual
+    $comparison = Compare-Object -ReferenceObject $csv2 -DifferenceObject $csv1 -Property $ComparisonColumn -PassThru -IncludeEqual
 
     # Add a new column to the output CSV file indicating the status change
     $output = $comparison | Select-Object *,@{Name="Status Change";Expression={
