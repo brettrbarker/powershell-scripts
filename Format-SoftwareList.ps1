@@ -8,9 +8,25 @@
 # Usage: ./Format-SoftwareList.ps1 -SoftwareListPath "./test-data/software1.csv" -OutputPath "./test-data/software1-formatted.csv"
 # Original CSV format: "Software","Count","Detection Method"
 ################################################
+
+# Load the ia-tools-support-functions.ps1 script
+. .\ia-tools-support-functions.ps1
+
 function Enter-SoftwareMenu {
+    param (
+        [Parameter(Mandatory=$false)]
+        [string]$workingDirectory
+    )
+
+    # If $workingDirectory is null, set it to the user's download folder
+    if(!$workingDirectory){
+        $workingDirectory = "$HOME\Downloads"
+    }
+
+
     while ($true) {
         # Print Menu
+        Show-Header
         Write-Host "##### SOFTWARE MENU #####" -ForegroundColor Green
         Write-Host "1. Format Software List"
         Write-Host "2. Compare Software Lists"
@@ -50,8 +66,83 @@ function Enter-SoftwareMenu {
         }
         # If user selects 2, execute Compare-CSV.ps1
         elseif ($selection -eq 2) {
-            Compare-CSV -Csv1Path $SoftwareListPath -Csv2Path $SoftwareListPath -ComparisonColumn Software
+            Clear-Host
+            $csv1Path = $null
+            $csv2Path = $null
+            Show-Header
+            Write-Host "##### COMPARE SOFTWARE LISTS #####" -ForegroundColor Green
+            # Get list of CSV files in the current working directory
+            $csvFiles = Get-ChildItem -Path $workingDirectory -Filter *.csv | Where-Object { $_.Name -imatch "software" } | Sort-Object -Property LastWriteTime -Descending | Select-Object -Property Name,LastWriteTime
+            
+            # Print list of first 6 CSV files in the current working directory with a number for each file
+            $csvFiles | Select-Object -First 6 | ForEach-Object -Begin { $i = 1 } -Process { Write-Host "$i. $($_.Name)"; $i++ }
+            Write-Host "9. Enter a custom path to a CSV file"
+            Write-Host "0. Cancel  and Go Back"
+            $selection1 = Read-Host "Select the first (oldest) CSV file to compare"
+            # Check if the selection is a number
+            if(!(Check-Number $selection1)){
+                Clear-Host
+                Write-Host "Error: $selection1 is not a number!"
+                Start-Sleep -s 3
+                continue
+            }
+            if ($selection1 -eq 9) {
+                # Prompt user to enter CSV1 and CSV2 file names
+                $csv1 = Read-Host "Enter CSV1 file name (oldest file)"
+                $csv2 = Read-Host "Enter CSV2 file name (newest file)"
+                if ($csv1 -eq $csv2) {
+                    Write-Host "CSV1 and CSV2 cannot be the same file"
+                    Start-Sleep -s 1
+                    Clear-Host
+                    continue
+                }
+                $csv1Path = Get-ChildItem -Path $exportLocation -Filter "*$csv1*" | Where-Object { $_.Name -notlike "*comparison*" } | Select-Object -First 1
+                $csv2Path = Get-ChildItem -Path $exportLocation -Filter "*$csv2*" | Where-Object { $_.Name -notlike "*comparison*" } | Select-Object -First 1
+                if ($null -eq $csv1 -or $null -eq $csv2) {
+                    Write-Host "CSV1 or CSV2 not found"
+                    Start-Sleep -s 1
+                    Clear-Host
+                    continue
+                }
+            }
+            elseif ($selection1 -eq 0) {
+                break
+            }
+            if ($selection1 -ne 9) {
+                # Check if the selection is a valid number
+                if($selection1 -gt $csvFiles.Count){
+                    Clear-Host
+                    Write-Host "Error: $selection1 is not a valid number!"
+                    Start-Sleep -s 3
+                    continue
+                }
+                $selection2 = Read-Host "Select the second (newest) CSV file to compare"
+                # Check if the selection is a number
+                if ($selection2 -eq 0){
+                    break
+                }
+                if(!(Check-Number $selection2)){
+                    Clear-Host
+                    Write-Host "Error: $selection2 is not a number!"
+                    Start-Sleep -s 3
+                    continue
+                }
+                # Check if the selection is a valid number
+                if($selection2 -gt $csvFiles.Count){
+                    Clear-Host
+                    Write-Host "Error: $selection2 is not a valid number!"
+                    Start-Sleep -s 3
+                    continue
+                }
+                # Get the path to the first CSV file
+                $Csv1Path = "$workingDirectory\$($csvFiles[$selection1-1].Name)"
+                # Get the path to the second CSV file
+                $Csv2Path = "$workingDirectory\$($csvFiles[$selection2-1].Name)"
+            }
+            # Execute Compare-CSV.ps1
+            Compare-CSV -Csv1Path $Csv1Path -Csv2Path $Csv2Path -ComparisonColumn Software
         }
+        
         elseif ($selection -eq 0) {
             break
         }
@@ -166,4 +257,9 @@ function Format-SoftwareList {
     }
     $csv | Export-Csv -Path $OutputPath -NoTypeInformation
 
+}
+
+# Call function if the script is run directly either by relative or absolute path
+if ($MyInvocation.InvocationName -eq ".\Format-SoftwareList.ps1" -or $MyInvocation.InvocationName -eq $ScriptPath) {
+    Enter-SoftwareMenu
 }
