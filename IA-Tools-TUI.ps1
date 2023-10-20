@@ -4,13 +4,10 @@
 # Load the User Export script
 . .\Export-Users.ps1
 
+# Load the ia-tools-support-functions.ps1 script
+. .\ia-tools-support-functions.ps1
 
 
-function Show-Header {
-    Write-Host "##### IA TOOLS #####" -ForegroundColor Green
-    Write-Host "##### Working Directory: " -NoNewline -ForegroundColor Green
-    Write-Host "$exportLocation" -ForegroundColor Red   
-}
 function Enter-MainMenu {
     while ($true) {
         # Print Menu
@@ -29,7 +26,7 @@ function Enter-MainMenu {
             Export-ADData
         }
         elseif ($selection -eq 2) {
-            Enter-SoftwareMenu
+            Enter-SoftwareMenu -workingDirectory $exportLocation
         }
         elseif ($selection -eq 3) {
             # Enter-SoftwareMenu
