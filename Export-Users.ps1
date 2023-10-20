@@ -9,7 +9,8 @@
 # Load the Compare-CSV.ps1 script
 . .\Compare-CSV.ps1
 
-
+# Load the ia-tools-support-functions.ps1 script
+. .\ia-tools-support-functions.ps1
 
 # Import Active Directory Module
 Import-Module ActiveDirectory
@@ -25,8 +26,6 @@ if ($? -eq $false) {
 
 ## SET VARIABLES
 # Set default file export location variable
-$global:exportLocation = "$HOME\Downloads"
-$exportLocationALT = "I:\" +  $(Get-Date -f yyyy)
 $exportFileNameRegular = "RegularUsers-$(Get-Date -f yyyyMMdd).csv"
 $exportFileNamePrivileged = "PrivilegedUsers-$(Get-Date -f yyyyMMdd).csv"
 $exportFileNameService = "ServiceAccounts-$(Get-Date -f yyyyMMdd).csv"
@@ -37,42 +36,6 @@ $OUPrivileged = Get-ADOrganizationalUnit -Filter 'Name -like "02-Privileged*"' |
 $OUService = Get-ADOrganizationalUnit -Filter 'Name -like "*Service-Accounts*"' | Select-Object -ExpandProperty "DistinguishedName"
 
 
-# Declare a sub-function that will check if the export location exists
-function Test-ExportLocation {
-    # If the export location does not exist, show and error message
-    if (!(Test-Path $exportLocation)) {
-        Write-Host "Export location ($exportLocation) does not exist!" -ForegroundColor Red
-        Write-Host "Please create the export location or select a new location."
-        Start-Sleep -s 3
-        return $false
-    }
-    return $true
-}
-
-function Edit-WorkingDirectory {
-                # while locationStatus is false, prompt user to enter new export location
-                $locationStatus = $false
-                while ($locationStatus -eq $false) {
-                    $origExportLocation = $exportLocation
-                    $newExportLocation = Read-Host "Enter new working directory location or '1' for $exportLocationALT"
-                    if ($newExportLocation -eq "1") {
-                        $global:exportLocation = $exportLocationALT
-                        $locationStatus = Test-ExportLocation
-                        if ($locationStatus -eq $false) {
-                            $global:exportLocation = $origExportLocation
-                        }
-                    }
-                    elseif ($newExportLocation -eq "") {
-                        break
-                    }
-                    else {
-                        $global:exportLocation = $newExportLocation
-                    }
-                    $locationStatus = Test-ExportLocation
-                }
-                Write-Host "Working Directory: $exportLocation"
-                Start-Sleep -s 2
-}
 function Export-ADData{
     # Create While True Loop to Print Menu unless user selects 0 to exit
     while ($true) {
@@ -201,8 +164,8 @@ function Export-ADData{
                 elseif ($selection -eq 4) {
                     $filter = $null
                     # Prompt user to enter CSV1 and CSV2 file names
-                    $csv1 = Read-Host "Enter CSV1 file name"
-                    $csv2 = Read-Host "Enter CSV2 file name"
+                    $csv1 = Read-Host "Enter CSV1 file name (oldest file)"
+                    $csv2 = Read-Host "Enter CSV2 file name (newest file)"
                     if ($csv1 -eq $csv2) {
                         Write-Host "CSV1 and CSV2 cannot be the same file"
                         Start-Sleep -s 1
@@ -232,8 +195,8 @@ function Export-ADData{
                     Write-Host "Filter: $filter"
                     # Get the last two files in the export location that match the filter
                     $csvFiles = Get-ChildItem -Path $exportLocation -Filter $filter | Where-Object { $_.Name -notlike "*comparison*" } | Sort-Object -Property LastWriteTime -Descending | Select-Object -First 2
-                    $csv1 = $csvFiles[0]
-                    $csv2 = $csvFiles[1]
+                    $csv1 = $csvFiles[1]
+                    $csv2 = $csvFiles[0]
                 }
 
                 if ($null -eq $csv1 -or $null -eq $csv2) {
