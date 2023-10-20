@@ -45,8 +45,8 @@ function Compare-CSV {
 
     # Add a new column to the output CSV file indicating the status change
     $output = $comparison | Select-Object *,@{Name="Status Change";Expression={
-        if($_.SideIndicator -eq "<="){"Deleted"}
-        elseif($_.SideIndicator -eq "=>"){"Added"}
+        if($_.SideIndicator -eq "<="){"Added"}
+        elseif($_.SideIndicator -eq "=>"){"Deleted"}
         else{"Unchanged"}
     }}
 
