@@ -2,6 +2,9 @@
 
 My random powershell scripts. 
 
+## IA-Tools-TUI.ps1
+Main menu script that serves as the entry point to call the other scripts.
+
 ## Export-Users.ps1
 
 Script to export a list of users with various properties from Active Directory.
