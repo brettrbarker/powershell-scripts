@@ -1,10 +1,10 @@
-# Tite: AD User Export Script
+# Tite: AD Export Script
 # Author: Brett Barker
-# Date: 17 October 2023
+# Date: 30 November 2023
 # CHANGES:
 # 2023-10-16 - specific ad-user fields added; porting other changes.
 # 2023-10-17 - fixed dynamic OU discovery
-#
+# 2023-11-30 - added export computer object option
 
 # Load the Compare-CSV.ps1 script
 . .\Compare-CSV.ps1
@@ -29,6 +29,8 @@ if ($? -eq $false) {
 $exportFileNameRegular = "RegularUsers-$(Get-Date -f yyyyMMdd).csv"
 $exportFileNamePrivileged = "PrivilegedUsers-$(Get-Date -f yyyyMMdd).csv"
 $exportFileNameService = "ServiceAccounts-$(Get-Date -f yyyyMMdd).csv"
+$exportFileNameSystemObjects = "SystemObjects-$(Get-Date -f yyyyMMdd).csv"
+
 
 # Set the filter to search for your regular user, privileged, and service account OUs
 $OURegular = Get-ADOrganizationalUnit -Filter 'Name -like "01-Users"' | Select-Object -ExpandProperty "DistinguishedName" 
@@ -50,8 +52,9 @@ function Export-ADData{
         Write-Host "2. Export List of All Privileged User Accounts"
         Write-Host "3. Export List of All Service Accounts"
         Write-Host "4. Print Accounts Created in Last X Days"
-        Write-Host "5. Compare Previous Exported Lists"
+        Write-Host "5. Export List of All AD Computer Objects"
         Write-Host "..."
+        Write-Host "8. Compare Previous Exported Lists"
         Write-Host "9. Change Working Directory"
         Write-Host "0. Exit"
 
@@ -138,8 +141,20 @@ function Export-ADData{
 
         }
 
-        # If user selects 5, run Compare-CSV.ps1 script with CSV1 and CSV2 as parameters. These should be the last two files named like "RegularUsers-$(Get-Date -f yyyymmdd).csv"
+        # If user selects 5, export list of all AD Computer Objects
         elseif ($selection -eq 5) {
+            $locationStatus = Test-ExportLocation
+                if ($locationStatus -eq $true) {
+                Write-Host "Exporting AD Computer Objects List"
+                Get-ADComputer -Properties * -Filter * | Select-Object Name, Enabled,@{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 2}}, Created, Modified, @{Name="LastLogonTime"; Expression={[datetime]::FromFileTime($_."lastLogon")}}, operatingSystem, operatingSystemVersion, IPv4Address, Description | Export-Csv -Path "$exportLocation/$exportFileNameSystemObjects" -NoTypeInformation
+                Write-Host "Export Complete"
+                Start-Sleep -s 2
+                Clear-Host
+                }
+        }
+
+        # If user selects 8, run Compare-CSV.ps1 script with CSV1 and CSV2 as parameters. These should be the last two files named like "RegularUsers-$(Get-Date -f yyyymmdd).csv"
+        elseif ($selection -eq 8) {
             $locationStatus = Test-ExportLocation
             if ($locationStatus -eq $true) {
                 # Prompt user "Which set of files do you want to compare?"
