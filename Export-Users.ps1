@@ -1,10 +1,11 @@
 # Tite: AD Export Script
 # Author: Brett Barker
-# Date: 30 November 2023
+# Date: 01 December 2023
 # CHANGES:
 # 2023-10-16 - specific ad-user fields added; porting other changes.
 # 2023-10-17 - fixed dynamic OU discovery
 # 2023-11-30 - added export computer object option
+# 2023-12-01 - added comparison of exported system objects option
 
 # Load the Compare-CSV.ps1 script
 . .\Compare-CSV.ps1
@@ -146,7 +147,7 @@ function Export-ADData{
             $locationStatus = Test-ExportLocation
                 if ($locationStatus -eq $true) {
                 Write-Host "Exporting AD Computer Objects List"
-                Get-ADComputer -Properties * -Filter * | Select-Object Name, Enabled,@{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 2}}, Created, Modified, @{Name="LastLogonTime"; Expression={[datetime]::FromFileTime($_."lastLogon")}}, operatingSystem, operatingSystemVersion, IPv4Address, Description | Export-Csv -Path "$exportLocation/$exportFileNameSystemObjects" -NoTypeInformation
+                Get-ADComputer -Properties * -Filter * | Select-Object SamAccountName, Name, Enabled,@{n='OU' ;e={$_.DistinguishedName.split(',')|Where-Object {$_.Startswith("OU=")}|ForEach-Object{$_.split("=")[1]}|Select-Object -first 2}}, Created, Modified, @{Name="LastLogonTime"; Expression={[datetime]::FromFileTime($_."lastLogon")}}, operatingSystem, operatingSystemVersion, IPv4Address, Description | Export-Csv -Path "$exportLocation/$exportFileNameSystemObjects" -NoTypeInformation
                 Write-Host "Export Complete"
                 Start-Sleep -s 2
                 Clear-Host
@@ -162,7 +163,8 @@ function Export-ADData{
                 Write-Host "1. Last two Regular Users"
                 Write-Host "2. Last two Privileged Users"
                 Write-Host "3. Last two Service Accounts"
-                Write-Host "4. Manual Selection"
+                Write-Host "4. Last two System Objects (AD Computer Objects)"
+                Write-Host "5. Manual Selection"
                 Write-Host "0. Cancel and Go Back"
                 $selection = Read-Host "Selection"
 
@@ -177,6 +179,9 @@ function Export-ADData{
                     $filter = "ServiceAccounts-*.csv"
                 }
                 elseif ($selection -eq 4) {
+                    $filter = "SystemObjects-*.csv"
+                }
+                elseif ($selection -eq 5) {
                     $filter = $null
                     # Prompt user to enter CSV1 and CSV2 file names
                     $csv1 = Read-Host "Enter CSV1 file name (oldest file)"
